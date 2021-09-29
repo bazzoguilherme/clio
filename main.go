@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-var data = map[string]string{"gui": "nat"}
+var filename = "./kv.db"
 
 func main() {
 	args := os.Args
@@ -17,6 +17,12 @@ func main() {
 	command := args[1]
 	commandArgs := args[2:]
 
+	kv := NewKv(filename)
+	err := kv.Load()
+	if err != nil {
+		log.Fatal("unable to load kv file")
+	}
+
 	switch command {
 	case "set":
 		if len(commandArgs) < 2 {
@@ -25,21 +31,11 @@ func main() {
 
 		key, value := commandArgs[0], commandArgs[1]
 
-		Set(key, value)
+		kv.Set(key, value)
 
-		kvFile, err := os.OpenFile(
-			"./kv.db",
-			os.O_APPEND|os.O_CREATE|os.O_RDWR,
-			os.ModePerm,
-		)
-
+		err := kv.Dump()
 		if err != nil {
-			log.Fatal(err.Error())
-		}
-		defer kvFile.Close()
-
-		for k, v := range data {
-			kvFile.WriteString(k + "\t" + v + "\n")
+			log.Fatal(err)
 		}
 
 	case "get":
@@ -49,25 +45,29 @@ func main() {
 
 		key := commandArgs[0]
 
-		value := Get(key)
+		value := kv.Get(key)
 
 		log.Println(value)
+	case "delete":
+		if len(commandArgs) < 1 {
+			log.Fatal("not enough arguments for 'delete' command")
+		}
+
+		key := commandArgs[0]
+
+		var err error
+		err = kv.Delete(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = kv.Dump()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	default:
 		log.Fatal("unsuported command")
 	}
 
-}
-
-func Set(key, value string) {
-	data[key] = value
-}
-
-func Get(key string) string {
-	value, ok := data[key]
-
-	if !ok {
-		return ""
-	}
-
-	return value
 }
