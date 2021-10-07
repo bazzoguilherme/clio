@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"bufio"
@@ -8,21 +8,21 @@ import (
 	"strings"
 )
 
-type KV struct {
-	data         map[string]string
-	dumpFilename string
+type FSBackend struct {
+	data     map[string]string
+	filename string
 }
 
-func NewKv(dumpFilename string) *KV {
-	return &KV{
-		data:         map[string]string{"gui": "nat"},
-		dumpFilename: dumpFilename,
+func NewFSBackend(filename string) *FSBackend {
+	return &FSBackend{
+		data:     map[string]string{"gui": "nat"},
+		filename: filename,
 	}
 }
 
-func (kv *KV) Load() error {
+func (be *FSBackend) Load() error {
 	file, err := os.OpenFile(
-		kv.dumpFilename,
+		be.filename,
 		os.O_CREATE|os.O_RDWR,
 		os.ModePerm,
 	)
@@ -49,37 +49,38 @@ func (kv *KV) Load() error {
 			return errors.New("malformed kv entry")
 		}
 
-		kv.data[entry[0]] = entry[1]
+		be.data[entry[0]] = entry[1]
 	}
 
 	return nil
 }
 
-func (kv *KV) Set(key, value string) {
-	kv.data[key] = value
+func (be *FSBackend) Set(key, value string) error {
+	be.data[key] = value
+	return be.dump()
 }
 
-func (kv KV) Get(key string) string {
-	value, ok := kv.data[key]
+func (be FSBackend) Get(key string) (string, error) {
+	value, ok := be.data[key]
 
 	if !ok {
-		return ""
+		return "", nil
 	}
 
-	return value
+	return value, nil
 }
 
-func (kv *KV) Delete(key string) error {
-	if _, ok := kv.data[key]; ok {
-		delete(kv.data, key)
-		return nil
+func (be *FSBackend) Delete(key string) error {
+	if _, ok := be.data[key]; ok {
+		delete(be.data, key)
+		return be.dump()
 	}
 	return errors.New("Can't delete key : '" + key + "' -> not in kv")
 }
 
-func (kv KV) Dump() error {
+func (be FSBackend) dump() error {
 	kvFile, err := os.OpenFile(
-		kv.dumpFilename,
+		be.filename,
 		os.O_CREATE|os.O_RDWR|os.O_TRUNC,
 		os.ModePerm,
 	)
@@ -89,7 +90,7 @@ func (kv KV) Dump() error {
 	}
 	defer kvFile.Close()
 
-	for k, v := range kv.data {
+	for k, v := range be.data {
 		kvFile.WriteString(k + "\t" + v + "\n")
 	}
 

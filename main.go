@@ -3,6 +3,9 @@ package main
 import (
 	"log"
 	"os"
+
+	be "github.com/bazzoguilherme/clio/backend"
+	kv "github.com/bazzoguilherme/clio/kv"
 )
 
 var filename = "./kv.db"
@@ -17,10 +20,11 @@ func main() {
 	command := args[1]
 	commandArgs := args[2:]
 
-	kv := NewKv(filename)
-	err := kv.Load()
+	fs_backend := be.NewFSBackend(filename)
+
+	kv, err := kv.NewKv(fs_backend)
 	if err != nil {
-		log.Fatal("unable to load kv file")
+		log.Fatal(err)
 	}
 
 	switch command {
@@ -32,11 +36,6 @@ func main() {
 		key, value := commandArgs[0], commandArgs[1]
 
 		kv.Set(key, value)
-
-		err := kv.Dump()
-		if err != nil {
-			log.Fatal(err)
-		}
 
 	case "get":
 		if len(commandArgs) < 1 {
@@ -55,16 +54,7 @@ func main() {
 
 		key := commandArgs[0]
 
-		var err error
-		err = kv.Delete(key)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = kv.Dump()
-		if err != nil {
-			log.Fatal(err)
-		}
+		kv.Delete(key)
 
 	default:
 		log.Fatal("unsuported command")
