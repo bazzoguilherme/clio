@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	be "github.com/bazzoguilherme/clio/backend"
-	kv "github.com/bazzoguilherme/clio/kv"
+	be "github.com/bazzoguilherme/clio/internal/backend"
+	kv "github.com/bazzoguilherme/clio/internal/kv"
 )
 
 var filename = "./kv.db"
