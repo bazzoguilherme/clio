@@ -1,11 +1,12 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 
 	be "github.com/bazzoguilherme/clio/internal/backend"
-	kv "github.com/bazzoguilherme/clio/internal/kv"
+	keyvalue "github.com/bazzoguilherme/clio/internal/kv"
 )
 
 var filename = "./kv.db"
@@ -13,17 +14,31 @@ var filename = "./kv.db"
 func main() {
 	args := os.Args
 
-	if len(args) < 2 {
+	if len(args) < 3 {
 		log.Fatal("not enough arguments")
 	}
 
-	command := args[1]
-	commandArgs := args[2:]
+	backendType := args[1]
+	var backend keyvalue.Backend
+	switch backendType {
+	case "dummy":
+		backend = be.DummyBackend{}
+	case "fs":
+		backend = be.NewFSBackend(filename)
+	case "http":
+		backend = be.NewHttpBackend()
+	default:
+		log.Fatal("Unsupported Backend")
+	}
 
-	fs_backend := be.NewFSBackend(filename)
+	command := args[2]
+	commandArgs := args[3:]
 
-	kv, err := kv.NewKv(fs_backend)
+	kv, err := keyvalue.NewKv(backend)
 	if err != nil {
+		if errors.Is(err, keyvalue.ErrBanckendLoadFailed) {
+			log.Fatal("BACKEND LOAD FAILED")
+		}
 		log.Fatal(err)
 	}
 

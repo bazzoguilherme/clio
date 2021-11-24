@@ -2,13 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
 var db = map[string]string{
 	"gui": "nat",
+}
+
+type bodyRequest struct {
+	value string
 }
 
 func main() {
@@ -47,14 +53,30 @@ func handleHealth(rw http.ResponseWriter, r *http.Request) {
 func handleKey(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost, http.MethodPut:
-		//TODO
+		key := getKey(*r.URL)
+		if key == "" {
+			fmt.Print("error key")
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		body := map[string]string{}
+		err := json.NewDecoder(r.Body).Decode(&body)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		value := body["value"]
+
+		db[key] = value
+
 	case http.MethodGet:
-		trimmedPath := strings.TrimPrefix(r.URL.Path, "/kv")
-		if trimmedPath == r.URL.Path {
+		key := getKey(*r.URL)
+		if key == "" {
 			rw.WriteHeader(http.StatusNotFound)
 			return
 		}
-		key := strings.TrimPrefix(trimmedPath, "/")
 
 		value, ok := db[key]
 		if !ok {
@@ -75,4 +97,12 @@ func handleKey(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+}
+
+func getKey(reqURL url.URL) string {
+	trimmedPath := strings.TrimPrefix(reqURL.Path, "/kv")
+	if trimmedPath == reqURL.Path {
+		return ""
+	}
+	return strings.TrimPrefix(trimmedPath, "/")
 }

@@ -1,12 +1,16 @@
 package backend
 
-import "log"
+import (
+	"log"
+
+	kv "github.com/bazzoguilherme/clio/internal/kv"
+)
 
 type DummyBackend struct{}
 
 func (be DummyBackend) Load() error {
 	log.Println("Dummy Backend = load")
-	return nil
+	return kv.ErrBanckendLoadFailed
 }
 
 func (be DummyBackend) Set(string, string) error {
